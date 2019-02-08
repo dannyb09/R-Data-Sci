@@ -1,0 +1,77 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r knitr_setup, echo=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Data types
+
+_1) Provide a URL to the dataset._
+
+I downloaded my dataset from https://www.kaggle.com/tmdb/tmdb-movie-metadata#tmdb_5000_movies.csv
+
+
+_2) Explain why you chose this dataset._
+
+I enjoy watching movies and this was one of the first data sets that caught my eye
+
+
+_3) What are the entities in this dataset? How many are there?_
+
+The entities in this dataset are top movies from TMDb. There are 4803 entities
+
+_4) How many attributes are there in this dataset?_
+
+There are 20 attributes
+
+_5) What is the datatype of each attribute (categorical -ordered or unordered-, numeric -discrete or continuous-, datetime, geolocation, other)? Write a short sentence stating how you determined the type of each attribute. Do this for at least 5 attributes, if your dataset contains more than 10 attributes, choose 10 of them to describe._
+
+| Num | Name | Type | Description |
+|-----|------|------|-------------|
+| 1 | `original_title` | other - title | Title of the movie |
+| 2 | `tagline` | other - tagline | Tagline of the movie |
+| 3 | `budget` | numeric continuous | total budget of the movie |
+| 4 | `status` | categorical unordered | Can take value from finite set of possible statuses |
+| 5 | `vote_count` | numeric continuous | Total count of votes |
+| 6 | `vote_average` | numeric discrete | Average vote on a scale of 1-10 |
+| 7 | `release_date` | datetime | Specifies date of release |
+| 8 | `revenue` | numeric continous | Total revenue earned |
+| 9 | `runtime` | other - address | Stree address if incident |
+| 10 | `original_language` | categorical unordered | Can take value from finite set of possible languages |
+
+_6) Write R code that loads the dataset using function `read_csv`. Were you able to load the data successfully? If no, why not?_
+
+```{r load_data, message=FALSE}
+library(tidyverse)
+#When i first used the url provided above, I was receiving a parsing error due to some sort of format error. However, once I uploaded it from my local machine it worked perfectly
+movies <- read_csv('tmdb_5000_movies.csv')
+
+```
+
+## Wrangling
+
+1) My pipeline computes the average budget by original language (ignores budgets <=0)
+
+```{r pipeline}
+mean_budgets <- movies %>%
+  filter(budget > 0) %>%
+  select(original_language, budget) %>%
+  group_by(original_language) %>%
+  summarize(mean_budget=mean(budget)) %>%
+  arrange(mean_budget)
+mean_budgets
+```
+
+## Plotting
+
+1) This barplot shows the average budget per original_language (ignoring budgets <= 0)
+
+```{r plot}
+mean_budgets %>%
+  ggplot(aes(x=original_language, y=mean_budget)) +
+    geom_bar(stat="identity") +
+    coord_flip()
+```
