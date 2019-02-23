@@ -1,0 +1,133 @@
+## ER Diagram
+
+![](ermodel2.jpg)
+
+
+
+## SQL
+
+```{r setupdb, include=FALSE}
+# make sure you write the path to your sqlite path here
+db <- DBI::dbConnect(RSQLite::SQLite(), "lahman2016.sqlite")
+```
+
+
+1) How many franchises are listed in the database (see [`count`](https://sqlite.org/lang_aggfunc.html#count))?
+
+```{sql q1, connection=db, eval=TRUE}
+
+SELECT COUNT(*)
+
+FROM TeamsFranchises
+
+```
+
+2) How many franchises are currently active?
+
+```{sql q2, connection=db, eval=TRUE}
+
+SELECT COUNT(active)
+
+FROM TeamsFranchises
+
+WHERE active = 'Y'
+
+```
+
+3) Which teams won more than 100 games in one season between 2000 and 2015? Order result by descending number of wins. (attribute `W` of the Teams table contains the number of wins)
+
+```{sql q3, connection=db, eval=TRUE}
+
+SELECT teamID, W
+
+FROM Teams
+
+WHERE Teams.yearid >= 2000 AND Teams.yearid <= 2015 AND teams.W >= 100
+
+ORDER BY W DESC
+
+```
+
+
+4) What is the franchise name of the team with the most total wins in the database?
+
+```{sql q4, connection=db, eval=TRUE}
+
+SELECT franchID, MAX(SUM)
+
+from (SELECT franchID, SUM(W) AS SUM
+
+FROM Teams
+
+GROUP BY franchID)
+
+```
+
+5) What is the franchise name of the team with the highest winning percentage in a season in the database? (Win percentage is `W/G`)
+
+```{sql q5, connection=db, eval=TRUE}
+
+SELECT franchID, MAX(percentage)
+
+FROM (
+
+SELECT franchID, 100.0 * W / G as percentage
+
+FROM Teams)
+
+```
+
+6) What is the franchise name of the team with the highest single-year payroll between 2000 and 2015?
+
+```{sql q6, connection=db, eval=TRUE}
+
+Select franchID, sum from
+
+(SELECT teamID, yearID, MAX(sum) as sum from
+
+(SELECT teamID, yearID, SUM(salary) as sum
+
+FROM Salaries
+
+WHERE yearID >= 2000 and yearID <= 2015
+
+GROUP BY teamID, yearID)) as joint_t join Teams
+
+on joint_t.teamID = Teams.teamID and joint_t.yearID = teams.yearid
+
+```
+
+7) (BONUS from [MDSR book](https://mdsr-book.github.io/)): Identify players (by first and last name) that have attained through their career either a) 500 or more HRs or b) 3000 or more hits (H) _and_ have not been inducted to the Hall of Fame (see `HallOfFame` table).
+
+```{sql q7, connection=db, eval=TRUE}
+
+Select nameFirst, nameLast from 
+
+(Select total_id from 
+
+(Select players_new.playerID as total_id, total_hr, total_h, inducted from 
+
+(SELECT playerID, total_hr, total_h from 
+
+(SELECT playerID, SUM(HR) as total_hr, SUM(H) as total_h
+
+from Batting
+
+GROUP BY playerID)
+
+where total_hr >= 500 or total_h >= 3000) as players_new 
+
+inner join HallOfFame on players_new.playerID = HallofFame.playerID
+
+group by total_id)
+
+where inducted = 'N') as hof_no inner join Master 
+
+on hof_no.total_id = Master.playerID
+
+
+```
+
+```{r disconnectdb, include=FALSE}
+DBI::dbDisconnect(db)
+```
