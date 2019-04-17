@@ -1,0 +1,181 @@
+---
+title: "Homework 4 - Statistical Analysis"
+author: "Daniel Brewer"
+date: "4/16/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(statip)
+library(tinytex)
+```
+Part 1 a: Derivation of V(Xbar)
+
+\begin{align}
+  Var(\overline X) = V(\cfrac{1}{n}\sum\limits_{i=1}^nX_i)\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^nVar(X_i)\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^nE(X_i)^2 - [E(X_i)]^2\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^np_A - p_A^2\\
+  = (\cfrac{1}{n})^2n(p_A)(1-p_A)\\
+  = \cfrac{(p_A)(1-p_A)}{n}
+\end{align}
+
+Part 1 b: Computing values for EXbar and V(Xbar) based on pA = 0.5 and n = 50
+```{r 1b}
+
+p_a <- 0.5
+q_a <- 1 - p_a
+n = 50
+ex_a = p_a
+var_a = ((p_a)*(q_a))/n
+
+ex_a #Expectation
+var_a #Variance
+```
+
+Part 1 c: Using CLT to Approximate Xbar
+```{r 1c}
+
+p_bhat <- 0.6
+
+se <- sqrt(var_a) #standard error
+
+p_val <- (1 - pnorm(p_bhat, mean = ex_a, sd = se))
+
+p_val #result of p(Xbar > p_bhat)
+
+```
+
+Part 1 d: Based on our p-value calculated by testing pB <= pA = 0.5, we should not reject the null hypothesis. If we use alpha = 0.05 as the rejection level, we want to reject the null hypothesis only if p(Xbar > p_bhat) <= alpha. If this condition was satisfied, our estimate would have been far out of our confidence interval. Since our p value was 0.078, the null hypothesis can not be rejected.
+
+Part 1 e: If the same observation was observed with p_bhat being 0.6 but with n = 100, the null hypothesis would have been rejected. By increasing the number of participants in our sample, the standard error and p-value decreases. After plugging in n = 100 into the above formulas, the new p-value will be 0.0025 (which is below our rejection threshold).
+
+Part 1 f: The smallest value p_bhat to reject the null hypothesis with n = 100 (using one tailed test)
+
+```{r small_val}
+
+se = sqrt(0.5*(1-0.5)) / sqrt(100)
+
+qb <- 0.5 + -qnorm(0.05, sd = se)
+
+qb #Smallest value to reject the null hypothesis with
+
+```
+
+Part 1 g: Small detectable improvement with n = 50
+
+```{r}
+
+se = sqrt(0.5*(1-0.5)) / sqrt(50)
+
+qb <- 0.5 + -qnorm(0.05, sd = se)
+
+qb #Smallest value to reject the null hypothesis with n = 50
+
+sde <- qb - 0.5
+
+sde #Smallest detectable movement
+
+```
+
+Part 2 - Comparing to known click rate (pA = 0.75)
+
+Part 2 (a + b): E(Xbar) and V(Xbar) and the computation of p(Xbar > p_bhat)
+
+```{r}
+
+p_a <- 0.75
+q_a <- 1 - 0.75
+ex_a <- p_a
+n = 50
+var_a = ((p_a)*(q_a))/n
+ex_a #Expectation
+var_a #Variance
+
+p_bhat <- 0.6
+se <- sqrt(var_a) #standard error
+p_val <- (1 - pnorm(p_bhat, mean = ex_a, sd = se))
+p_val #result of p(Xbar > p_bhat)
+
+```
+
+Part 2 c: The null hypothesis can not be rejected. The value of p(Xbar > p_bhat) is well above our alpha threshold of 0.05 in this case
+
+Part 2 d: The null hypothesis can still not be rejected. Instead of decreasing, the p-value ended up increasing towards a probability of 1. This means that our p hat estimation is still within our confidence interval to reject.
+
+Part 2 e: Smallest value p_bhat that can reject the null hypothesis with n = 100
+```{r}
+
+se = sqrt(0.75*(1-0.75)) / sqrt(100)
+
+qb <- 0.75 + -qnorm(0.05, sd = se)
+
+qb #Smallest value to reject the null hypothesis with
+
+```
+
+Part 2 f: Smallest detectable improvement for pA = 0.75 with n = 50
+```{r}
+
+se = sqrt(0.75*(1-0.75)) / sqrt(50)
+
+qb <- 0.75 + -qnorm(0.05, sd = se)
+
+qb #Smallest value to reject the null hypothesis with n = 50
+
+sde <- qb - 0.75
+
+sde #Smallest detectable movement
+
+```
+
+Part 3: The smallest detectable improvement in Part 1 g was larger than the SDE in Part 2f. This makes sense mathematically because our hypothesized probability in Part 1 was smaller than the one in Part 2. Therefore, the standard error is going to be higher in Part 1 than Part 2. When the standard error is higher, there is going to be more spread which explains why you have a wider spread of values that would disallow the rejection based on the threshold. When there's a higher variance there's going to be a larger spread from the expected value.
+
+
+
+
+
+
+Part 4 a: Derivation of Var(Y)
+
+\begin{align}
+  Var(Y) = Var(\overline X_B - \overline X_A)\\
+  = Var(\overline X_B) + Var(\overline X_A)\\
+  = V(\cfrac{1}{n}\sum\limits_{i=1}^nX_iB) + V(\cfrac{1}{n}\sum\limits_{i=1}^nX_iA)\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^nVar(X_iB) + (\cfrac{1}{n})^2 \sum\limits_{i=1}^nVar(X_iA)\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^nE(X_iB)^2 - [E(X_iB)]^2 + (\cfrac{1}{n})^2 \sum\limits_{i=1}^nE(X_iA)^2 - [E(X_iA)]^2\\
+  = (\cfrac{1}{n})^2 \sum\limits_{i=1}^np_B - p_B^2 + (\cfrac{1}{n})^2 \sum\limits_{i=1}^np_A - p_A^2\\
+  = (\cfrac{1}{n})^2n(p_B)(1-p_B) + (\cfrac{1}{n})^2n(p_A)(1-p_A)\\
+  = \cfrac{(p_B)(1-p_B)}{n_B} + \cfrac{(p_A)(1-p_A)}{n_A}\\
+  = \cfrac{(p_B)(1-p_B) + (p_A)(1-p_A)}{n}
+\end{align}
+
+Part 4 b: Due to p_a and p_b being equal in our null hypothesis, we can add their results together. This gives n = 100 and s = 70, therefore giving a p value of .7
+
+Part 4 c + d: Computed Variance for Y and find y hat estimation
+
+```{r}
+
+p <- 0.7
+
+var <- ((p)*(1-p)/45) + (p*(1-p)/55)
+
+se = sqrt(var)
+
+y_hat = (35/45)-(35/55)
+
+y_hat #Estimate of y hat based on the data
+
+```
+
+Part 4 e + f: After finding p(Y > y_hat), the the p value is above the threshold. Therefore, the null hypothesis can not rejected because our new p_value is still within the range.
+
+```{r}
+
+p_val <- (1 - pnorm(y_hat, mean = 0, sd = se))
+
+p_val #p(Y > y_hat)
+
+```
