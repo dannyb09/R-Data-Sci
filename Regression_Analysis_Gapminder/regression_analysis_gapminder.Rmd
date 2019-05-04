@@ -1,0 +1,141 @@
+---
+title: "Regression Analysis of Gapminder Data"
+author: "Daniel Brewer"
+date: "5/4/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+Q1: There is a general trend when creating a scatter plot of life expectancy across time. Using qualitative judgement, the trend is that life expectancy is linearly increasing across time.  
+```{r}
+library(gapminder)
+library(tidyr)
+library(tidyverse)
+library(broom)
+data(gapminder)
+gapminder
+
+life_plot <- gapminder %>% ggplot(mapping=aes(x=year, y=lifeExp)) + geom_point(mapping=aes(color=continent)) + labs(title = "Life Expectancy over time", x = "year", y = "life expectancy")
+
+life_plot
+
+```
+
+Q2: Using a violin plot shows that the distribution of life expectancy across countries begins as more concentrated below the median, but as years goes on it becomes more concentrated above the median. This shows that the data is skewed and not symmetric around its center, especially at the start and end years. Overall, the distributions each year are unimodal, but between 1957-1967 the distribution takes on a bimodal shape.  
+Q3: If this model were to be fit, I would reject the null hypothesis of no relationship.  
+Q4: A violin plot of residuals from the linear model in Q3 vs. year would look very similar to the plot below (due to the difference between predicted and actual value), except the trend would be downwards (due to the increasing linear relationship in the model below). If linear, the residuals will be centered around 0 similarly to the values being centered around 60 in the plot below.  
+Q5: If the assumption is that there is no relationsip, we would see a plot very different from the one below, with residual values not centered around 0. This would indicate there is no relationship due to a variation in predicted vs actual distance.  
+```{r}
+
+gapminder %>% 
+  ggplot(aes(x=factor(year), y=lifeExp)) +
+    geom_violin() +
+    labs(title="Life expectancy over time", x = "year", y = "life expectancy")
+
+```
+
+Q6: On average, life expectancy increases by 0.3259 per year around the world.  
+Q7: Due to the low p value (< 0.05) seen below, the null hypothesis of no relationship between year and life expectancy can be rejected.  
+```{r}
+
+linear_co <- lm(lifeExp~year, data=gapminder)
+linear_co %>% tidy()
+
+```
+
+Q8: The violin plot below does match my expectations from Q4. Overall, the distribution of the plot is centered around 0 with probability distributions going from below 0 to above 0. This centering around 0 indicates a linear relationship. The plot also looks indentical to the one from Q4, except with a downward trend.  
+```{r warnings = FALSE}
+
+aug <- linear_co %>% augment()
+
+aug %>% 
+  ggplot(aes(x=factor(year), y=.resid)) +
+    geom_violin() + labs(title="Residual vs. year", x = "year", y = "residual")
+
+```
+
+Q9: The violin plot of residual vs. continent shows that our model produces a different error for each continent. The Americas and Asia residuals closely represent the model while Africa, Europe, and Oceania does not. Africa will have a high negative error (meaning that life expectancy compared to the rest of the world is low) while Oceania and Asia have a high positive error (meaning life expectancy is high compared to the rest of the world). When performing regression analysis, the residual error of each of the continents is something to keep in mind.
+```{r warnings = FALSE}
+
+merged_aug <- merge(aug, gapminder, by.x="lifeExp", by.y="lifeExp")
+
+merged_aug %>% 
+  ggplot(aes(x=continent, y=.resid)) +
+    geom_violin() + labs(title="Residual vs. continent", x = "continent", y = "residual")
+
+
+```
+
+Q10: Based on this plot, yes there should be a term included for an interaction between continent and year. The slopes of Asia and the Americas are different than the slopes of Africa, Oceania, and europe. This indicates that life expectancy is improving at a quicker rate per year in the Americas and Asia than the three other continents. This indicates a possible interaction.
+```{r}
+
+gapminder %>% 
+  ggplot(aes(x=year, y=lifeExp, color = continent)) +
+    geom_point() +
+    geom_smooth(method=lm) +
+    labs(title="Life expectancy over time", x = "year", y = "life expectancy")
+
+```
+
+Q11: All parameters are signifcant from O (p.value < 0.05) except for Oceania and the year*Oceania parameters. Both have these have a p.value > 0.05, meaning that we can not reject the null hypothesis that there is no interaction. Therefore, both of these parameters are statistically insignificant.
+
+```{r}
+interaction_co <- lm(lifeExp~year*continent, data=gapminder)
+tidy_interaction_co <- interaction_co %>% tidy()
+tidy_interaction_co
+```
+
+Q12: The chart below gives the continent name and its corresponding value for how much life expectancy increases each year.
+```{r}
+
+baseline <- tidy_interaction_co %>%filter(term == "year") %>% select(estimate)
+baseline <- baseline$estimate
+tidy_interaction_co <- tidy_interaction_co %>% mutate(average_per_year= ifelse((estimate != baseline), estimate+baseline, estimate)) %>% select(term, average_per_year) %>% filter(average_per_year <= .5 & average_per_year >= 0)
+
+tidy_interaction_co$term[1] = "Africa"
+tidy_interaction_co$term[2] = "Americas"
+tidy_interaction_co$term[3] = "Asia"
+tidy_interaction_co$term[4] = "Europe"
+tidy_interaction_co$term[5] = "Oceania"
+
+tidy_interaction_co
+
+```
+
+Q13: Overall, both models have low enough p-values (p <0.05) where they are statistically significant. However, the residuals in the interaction model have a MSE of 52, compared with the MSE of 13 in the original linear regression model (as seen in the two charts below). The mean square of the error is calculated by dividing the sum of squares of the residual error by the degrees of freedom.
+
+F-Testing the linear regression model from Q6
+```{r}
+
+linear_co <- lm(lifeExp~year, data=gapminder)
+anova(linear_co)
+
+```
+
+F-Testing the interaction model from Q11
+```{r}
+
+interaction_co <- lm(lifeExp~year*continent, data=gapminder)
+anova(interaction_co)
+
+```
+
+
+To further prove the statement above, a residuals vs. year violin plot shows how well the interaction model matches assumptions of a linear regression model. Each year is represented by a unimodal violin plot with the probability being most densely distribution around a residual value of 0. This means that, overall, the average difference between the actual and predicted value is small (and much smaller than the original linear regression model). 
+```{r}
+
+interaction_co %>% augment() %>% ggplot(aes(x=factor(year), y=.resid)) +
+    geom_violin() + labs(title="Residual vs. Year", x = "year", y = "residual")
+
+```
+
+
+A scatter plot of residuals vs. fitted values shows that the underlying relationship is linear. By using a linear regression line, we can see that the residual values are centered around 0. Again, this indicates that the average difference between the actual and predicted value is centered around 0.
+```{r}
+interaction_co %>% ggplot(mapping=aes(x=.fitted, y=.resid)) + geom_point() + geom_smooth(method=lm) + labs(title = "Residual vs. Fitted", x = "fitted", y = "residual")
+
+```
