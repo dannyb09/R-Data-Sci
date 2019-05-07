@@ -1,0 +1,47 @@
+---
+title: "Interactive Map of Baltimore"
+author: "Daniel Brewer"
+date: "5/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A dataset containing Baltimore Crime statistics was used to create an interactive map of Baltimore Crime.
+```{r}
+
+library(tidyverse)
+library(stringr)
+
+arrest_tab <- read_csv("http://www.hcbravo.org/IntroDataSci/misc/BPD_Arrests.csv")
+dat <- arrest_tab %>% 
+  filter(!is.na(`Location 1`)) %>%
+  separate(`Location 1`, c("lat","lng"), sep=",") %>%
+  mutate(lat=as.numeric(str_replace(lat, "\\(", ""))) %>%
+  mutate(lng=as.numeric(str_replace(lng, "\\)", ""))) %>%
+  sample_n(2000)
+dat
+
+```
+
+In this interactive map, arrest incidents are shown using geographic data obtained from the data set. Each offense location is shown on the map using a violet or blue colored circle. A violet colored circle indicates that the arrest was made on a Female, while a light blue circle indicates the arrest was made on a Male. When a circle is clicked on, a pop-up is shown detailing the type of offense. Overall, the map is showing an interactive distribution of arrests categorized by gender.
+```{r}
+library(leaflet)
+library(htmltools)
+
+test <- colorFactor(palette = c("violet", "blue"), dat$sex)
+
+balto_map <- leaflet(dat) %>% addTiles() %>% addCircleMarkers(
+  radius = ~ifelse(sex == "M", 6, 8),
+  color = ~test(sex), 
+  stroke = FALSE, 
+  fillOpacity = ~ifelse(sex == "M", 0.6, 1),
+  popup = ~htmlEscape(incidentOffense)) %>% 
+  
+  addLegend(position = 'topright', pal = test, values = ~sex, labels = "Sex") %>%
+  setView(lat=39.29, lng=-76.61, zoom=11)
+balto_map
+
+```
