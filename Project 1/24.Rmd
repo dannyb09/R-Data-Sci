@@ -1,0 +1,119 @@
+---
+title: "Project 1"
+output: html_notebook
+---
+
+2) Install he igraph package from one of the CRAN mirrors. Determine how to create a graph and plot. Show the plot in your report. 
+
+When displaying your graph, label all edges with one of the four labels mentioned in the data set. See diagrams in the referenced website.
+
+```{r}
+
+library(igraph)
+
+table <- read.table("as-caida20071105.txt", skip=7, as.is=TRUE, comment = "" , col.names = c("FromNodeId", "ToNodeId", "Relationship"), header=TRUE)
+
+table_as_df <- head(as.data.frame.matrix(table))
+
+g <- graph.data.frame(d = table_as_df, directed = T)
+
+plot(g, layout = layout_with_fr,vertex.size = 40, vertex.color = 'lightblue', edge.arrow.size = 0.1, vertex.label.cex = 0.5, edge.label = table_as_df$Relationship, edge.label.cex = 0.5)
+
+
+
+```
+
+4) Explore other functions in the igraph package – at least 10 of them. Apply them to the graph generated above. Do NOT pick ones mentioned in the Introduction to Graph Analytics! You may have to do a little programming in R. There are numerous books posted on the Blackboard.
+
+(1) Biconnected Components - Finding the largest biconnected component
+
+```{r}
+
+bc <- biconnected.components(g)
+
+print(paste("Size of Largest Biconnected Component: ", max(sapply(bc$components, length))))
+
+```
+
+(2) Cocitation
+
+```{r}
+
+print(cocitation(g))
+
+```
+
+(3) Bibcoupling
+
+```{r}
+
+print(bibcoupling(g))
+
+```
+
+(4) Connected Components
+
+```{r}
+
+print(groups(components(g)))
+
+```
+
+(5) Triangles. Prints a Matrix. Column name is triangle number and row is vertex number of each vertex in the triangle
+
+```{r}
+
+print(matrix(triangles(g), nrow=3))
+
+```
+
+(6) Count Triangles. Will print the same graph except each vertex label is the number of adjacent triangles to that vertex
+
+```{r}
+
+## Adjacencent triangles
+atri <- count_triangles(g)
+plot(g, vertex.label=atri)
+```
+
+(7) Determine if Graph is Chordal
+
+```{r}
+
+print(max_cardinality(g))
+
+print(is_chordal(g, fillin=TRUE))
+```
+
+
+(8) Minimum Spanning Tree
+
+```{r}
+
+plot(mst(g, weights = table_as_df$Relationship ))
+
+```
+
+(9) Neighborhood of Graph Vertices - Find the vertices not farther than a given limit form another fixed vertex
+
+```{r}
+
+print(plot(connect(g,2), layout = layout_with_fr,vertex.size = 20, vertex.color = 'lightblue', edge.arrow.size = 0.1, vertex.label.cex = 0.5 ))
+
+```
+
+(10) Optimal Community Structure - Calculates the OCS by maximizing the modularity measure over all possible partitions
+
+```{r}
+
+oc <- cluster_optimal(g)
+
+print(oc)
+
+```
+
+Discussion:
+
+Our goal for this project was to load and simplify the graph in the most simple yet efficient way possible. We tackled this problem by attempting to use the least amount of code possible for our functions. As we know from working with R in the past, it is possible to go down a "rabbit hole" where you spend many lines of code trying to make functions work. In reality, many simplifications in R can be done with a few lines of code using matrix transformations and other functional methods.
+
+Loading the data from the text file was relatively simple. We converted the text file into a table (after skipping the first couple commented lines) and after being in table form we were able to use the data more efficiently. We were able to convert the table into a matrix and then to a dataframe to be used by iGraph.
